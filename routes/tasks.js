@@ -5,8 +5,13 @@ const verifyToken = require('../middleware/auth');
 // Get all tasks for the logged-in user (Protected)
 router.get('/', verifyToken, async (req, res) => {
   try {
-    // 👇 Filter by userId so users only see their own tasks
-    const tasks = await Task.find({ userId: req.user.id }).sort({ order: 1 });
+    const userId = req.user.id || req.user._id;
+    
+    if (!userId) {
+      return res.status(400).json({ error: "User identity could not be verified from token." });
+    }
+
+    const tasks = await Task.find({ userId: userId }).sort({ order: 1 });
     res.status(200).json(tasks);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -16,10 +21,15 @@ router.get('/', verifyToken, async (req, res) => {
 // Create a task linked to the logged-in user (Protected)
 router.post('/', verifyToken, async (req, res) => {
   try {
-    // 👇 Inject the logged-in user's ID into the task data before saving
+    const userId = req.user.id || req.user._id;
+
+    if (!userId) {
+      return res.status(400).json({ error: "User identity could not be verified from token." });
+    }
+
     const newTask = new Task({
       ...req.body,
-      userId: req.user.id
+      userId: userId
     });
     const savedTask = await newTask.save();
     res.status(201).json(savedTask);
@@ -31,9 +41,14 @@ router.post('/', verifyToken, async (req, res) => {
 // Update task status / drag and drop (Protected)
 router.put('/:id', verifyToken, async (req, res) => {
   try {
-    // 👇 Ensure the task belongs to the user trying to modify it
+    const userId = req.user.id || req.user._id;
+
+    if (!userId) {
+      return res.status(400).json({ error: "User identity could not be verified from token." });
+    }
+
     const updatedTask = await Task.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user.id },
+      { _id: req.params.id, userId: userId },
       { $set: req.body },
       { new: true }
     );
@@ -48,8 +63,13 @@ router.put('/:id', verifyToken, async (req, res) => {
 // Add a comment to a task card (Protected)
 router.post('/:id/comments', verifyToken, async (req, res) => {
   try {
-    // 👇 Ensure they can only comment on their own board's tasks
-    const task = await Task.findOne({ _id: req.params.id, userId: req.user.id });
+    const userId = req.user.id || req.user._id;
+
+    if (!userId) {
+      return res.status(400).json({ error: "User identity could not be verified from token." });
+    }
+
+    const task = await Task.findOne({ _id: req.params.id, userId: userId });
     if (!task) return res.status(404).json({ error: 'Task not found or unauthorized' });
 
     const newComment = { username: req.user.username, text: req.body.text };
