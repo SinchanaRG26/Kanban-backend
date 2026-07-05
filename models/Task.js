@@ -10,7 +10,13 @@ const TaskSchema = new mongoose.Schema({
   description: { type: String },
   status: { type: String, enum: ['todo', 'in-progress', 'done'], default: 'todo' },
   order: { type: Number, default: 0 },
-  comments: [CommentSchema] // Adds collaborative comments to every task card
+  comments: [CommentSchema],
+  // 👇 Add this field to link the task to a specific user
+  userId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User', 
+    required: true 
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Task', TaskSchema);
